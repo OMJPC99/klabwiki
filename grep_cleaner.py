@@ -10,7 +10,7 @@ def clean_file(input_name, output_name, clean=False, input_directory='split_xml/
 
     # Use grep to reduce to relevant information faster than python can
     print 'Finding IPs, user names, and journal citations for "%s"' % input_name
-    os.system('grep -o -E "\{\{cite journal.*?\}\}|<ip>.*?</ip>|<username>.*?</username>|<timestamp>.*?</timestamp>" ' + input_directory + input_name + " > " + output_directory + "semi_clean_" + input_name + ".xml")
+    os.system('grep -o -E "\{\{cite journal.*?\}\}|\{\{cite pmid.*?\}\}|\{\{cite doi.*?\}\}|<ip>.*?</ip>|<username>.*?</username>|<timestamp>.*?</timestamp>" ' + input_directory + input_name + " > " + output_directory + "semi_clean_" + input_name + ".xml")
 
     if clean:
         os.system('rm ' + input_directory + input_name)
@@ -23,11 +23,13 @@ def clean_file(input_name, output_name, clean=False, input_directory='split_xml/
 
 # Takes grep's semi-cleaned file, and extracts the necessary information
 def parse_citations(input_file, output_file):
-    input_read = open(input_file, 'r')              # input scanner
-    output_write = open(output_file, 'w')           # output file writer
-    unique_cite = open('unique_citations.txt', 'w') # force creation of new document
+    input_read = open(input_file, 'r')               # input scanner
+    output_write = open(output_file, 'w')            # output file writer
+    unique_cite = open('unique_citations.txt', 'w')  # force creation of new documents
     unique_cite.close()
-    citation_count = 0                              # number of citations in the document
+    unique_id = open('unique_ids.txt', 'w')
+    unique_id.close()
+    citation_count = 0                               # number of citations in the document
 
     output_write.write('<root>\n')
     output_write.write('    <revision>\n')
@@ -41,7 +43,7 @@ def parse_citations(input_file, output_file):
             output_write.write('    </revision>\n')
             output_write.write('    <revision>\n')
             output_write.write('        ' + line)
-        else:
+        elif 'cite journal' in line:
             # Prints a count every 1000 citations encountered
             citation_count += 1
             if citation_count % 1000 == 0:
@@ -53,7 +55,7 @@ def parse_citations(input_file, output_file):
 
             # Break on the attribute delimiter for citation format
             attributes = line.split('|')
-            desired_attributes = ['journal', 'author', 'last', 'first', 'year', 'volume', 'issue', 'pages']
+            desired_attributes = ['journal', 'author', 'last', 'first', 'year', 'volume', 'issue', 'pages', 'pmid', 'doi']
             acquired_attributes = parse_citation(attributes, desired_attributes)
             year = ''
             i = 0
@@ -67,7 +69,17 @@ def parse_citations(input_file, output_file):
                 output_write.write('            <name>' + acquired_attributes[0] + '</name>\n')
                 output_write.write('            <year>' + acquired_attributes[4] + '</year>\n')
                 output_write.write('        </cite_journal>\n')
-
+        else:
+            line = line.replace('{', '')
+            line = line.replace('}', '')
+            line = line.replace('\n', '')
+            tokens = line.split('|')
+            id = tokens[1]
+            if not duplicate_cite(tokens, True):
+                if 'pmid' in tokens[0]:
+                    output_write.write('        <cite_pmid>' + id + '</cite_pmid>\n')
+                else:
+                    output_write.write('        <cite_doi>' + id + '</cite_doi>\n')
     output_write.write('    </revision>\n')
     output_write.write('</root>')
     input_read.close()
@@ -96,22 +108,34 @@ def parse_citation(attributes, desired_attributes):
     return acquired_attributes
 
 
-def duplicate_cite(citation):
-    unique_cite = open('unique_citations.txt', 'r')
-    for line in unique_cite:
-        past_cite = line[0:len(line)-1].split('|')
-        match = True
-        for i in range(0, len(past_cite)):
-            if (past_cite[i] != '') and (past_cite[i] != citation[i]):
-                match = False
-            if not match:
-                break
-        if match:
-            return True
-    unique_cite.close()
-    citation = '|'.join(citation)
-    with open('unique_citations.txt', 'a') as cite_writer:
-        cite_writer.write(citation + '\n')
-    return False
+def duplicate_cite(citation, doi_pmid = False):
+    if not doi_pmid:
+        unique_cite = open('unique_citations.txt', 'r')
+        for line in unique_cite:
+            past_cite = line[0:len(line)-1].split('|')
+            match = True
+            for i in range(0, len(past_cite)):
+                if (past_cite[i] != '') and (past_cite[i] != citation[i]):
+                    match = False
+                if not match:
+                    break
+            if match:
+                return True
+        unique_cite.close()
+        citation = '|'.join(citation)
+        with open('unique_citations.txt', 'a') as cite_writer:
+            cite_writer.write(citation + '\n')
+        return False
+    else:
+        unique_id = open('unique_ids.txt', 'r')
+        for line in unique_id:
+            past_id = line[0:len(line)-1].split('|')
+            if past_id[0] == citation[0] and past_id[1] == citation[1]:
+                return True
+        unique_id.close()
+        id = '|'.join(citation)
+        with open('unique_ids.txt', 'a') as id_writer:
+            id_writer.write(id + '\n')
+        return False
 
 #clean_file('Wikipedia-20150619203602.xml', 'cleaned_test.xml', input_directory='', output_directory='')
