@@ -11,7 +11,7 @@ app (file file_list) get_files (file lister) {
 # 	cleaner - grep_cleaner.py
 #	ingester - UniversalIngest.py
 #	filterer - filter_database.py
-app (file ip_list, file out, file err) final_data_scrape (file scraper, file_cleaner, file filterer) {
+app (file ip_list, file out, file err) final_data_scrape (file scraper, file_cleaner, file ingester, file filterer) {
     final_data_scrape @scraper @ip_list stdout=filename(out) stderr=filename(err);
 }
 
@@ -24,7 +24,11 @@ string split_files[] = readData(file_list);
 file scraper <single_file_mapper; file="clean_and_ingest.py">;
 file cleaner <single_file_mapper; file="grep_cleaner.py">;
 file ingester <single_file_mapper; file="UniversalIngest.py">;
+file filterer <single_file_mapper; file="filter_database.py">;
 
 foreach split_file,i in split_files {
-    final_data_scrape();
+    file out <single_file_mapper; file=strcat("stdout/stdout_",i,".out")>;
+    file err <single_file_mapper; file=strcat("stdout/stderr_",i,".err")>;
+    file final_output <single_file_mapper; file=strcat("output/ip_list_",i,".txt")>;
+    (final_output, out, err) = final_data_scrape(scraper, cleaner, ingester, filterer);
 }
