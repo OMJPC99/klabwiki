@@ -11,7 +11,7 @@ def clean_directory(input_directory, output_directory):
         os.system('mv %s%s ./' % (input_directory, file_name))
         last_page_id = clean_file(file_name, output_directory + 'clean_xml_%d.xml' % index)
         index += 1
-        os.system('mv %s %s/' % (file_name, input_directory))
+	os.system('mv %s %s/' % (file_name, input_directory))
 
 
 def clean_file(input_file_name, output_file_name, last_page_id=''):
@@ -49,10 +49,10 @@ def format_file(input_file_name, output_file_name, last_page_id=''):
             output_writer.write('\t\t' + line)
         elif '<timestamp>' in line:
             if not first_revision:
-                output_writer.write('\t\t<page_id>%s</page_id>\n' % last_page_id)
-                output_writer.write('\t</revision>\n')
-            if first_revision: first_revision = False
-            output_writer.write('\t<revision>\n')
+		output_writer.write('\t\t<page_id>%s</page_id>\n' % last_page_id) 
+		output_writer.write('\t</revision>\n')
+	    if first_revision: first_revision = False
+	    output_writer.write('\t<revision>\n')
             output_writer.write('\t\t' + line)
         elif 'cite journal' in line:
             citation_count += 1
@@ -66,6 +66,8 @@ def format_file(input_file_name, output_file_name, last_page_id=''):
                 output_writer.write('\t\t<cite_journal>\n')
                 output_writer.write('\t\t\t<name>' + acquired_attributes[0] + '</name>\n')
                 output_writer.write('\t\t\t<year>' + acquired_attributes[4] + '</year>\n')
+		output_writer.write('\t\t\t<pmid>' + acquired_attributes[8] + '</pmid>\n')
+		output_writer.write('\t\t\t<doi>' + acquired_attributes[9] + '</doi>\n')
                 output_writer.write('\t\t</cite_journal>\n')
         elif 'cite pmid' in line or 'cite doi' in line:
             punctuation = ["}", "{", "\n"]
@@ -73,8 +75,8 @@ def format_file(input_file_name, output_file_name, last_page_id=''):
             tokens = line.split('|')
             try: id = tokens[1]
             except: 
-                print line
-                continue
+		print line
+		continue
             if not duplicate_cite(tokens, True):
                 if 'pmid' in tokens[0]: output_writer.write('\t\t<cite_pmid>' + id + '</cite_pmid>\n')
                 else: output_writer.write('\t\t<cite_doi>' + id + '</cite_doi>\n')
