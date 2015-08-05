@@ -17,7 +17,8 @@ with open('raw_list.txt', 'r') as read_file:
         else: match = match.group()
 
         if match == group:
-            print line
+            transfer(line)
+
 if not os.path.isdir('unzipped'): os.mkdir('unzipped')
 for file_name in os.listdir('transfers/'):
     os.system('7z e transfers/%s -ounzipped/' % file_name)
