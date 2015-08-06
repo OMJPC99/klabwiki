@@ -4,14 +4,30 @@ import sys
 
 
 def clean_directory(input_directory, output_directory):
+    print 'Cleaning directory:', input_directory
+    sub_dir_size = 10000
+    # output_directory will be the main directory, with sub directories created every sub_dir_size files
     if not os.path.isdir(output_directory): os.mkdir(output_directory)
     index = 0
+    cur_file_num = 0
+    sub_dir_num = 0
+    current_sub_dir_name = 'division_0/'
     last_page_id = ''
-    for file_name in sorted(os.listdir(input_directory)):
+    print 'Building file list...(this may take a while)'
+    file_list = os.listdir(input_directory)
+    print 'Beginning iteration across files...'
+    for file_name in sorted(file_list):
+        if cur_file_num == sub_dir_size:
+            sub_dir_num += 1
+            cur_file_num = 0
+            current_sub_dir_name = 'division_%d/' % sub_dir_num
+            os.mkdir(output_directory + 'division_%d' % sub_dir_num)
+        # Move file into current directory for processing for the sake of easier file path operations
         os.system('mv %s%s ./' % (input_directory, file_name))
-        last_page_id = clean_file(file_name, output_directory + 'clean_xml_%d.xml' % index)
+        last_page_id = clean_file(file_name, output_directory + current_sub_dir_name +'clean_%s' % file_name)
         index += 1
-	os.system('mv %s %s/' % (file_name, input_directory))
+        cur_file_num += 1
+	os.system('mv %s %s' % (file_name, input_directory))
 
 
 def clean_file(input_file_name, output_file_name, last_page_id=''):
@@ -36,7 +52,6 @@ def format_file(input_file_name, output_file_name, last_page_id=''):
     first_revision = True
 
     output_writer.write('<root>\n')
-
     for line in input_reader:
         if '<ip>' in line:
             output_writer.write('\t\t' + line)
@@ -55,20 +70,23 @@ def format_file(input_file_name, output_file_name, last_page_id=''):
 	    output_writer.write('\t<revision>\n')
             output_writer.write('\t\t' + line)
         elif 'cite journal' in line:
-            citation_count += 1
-            if citation_count % 1000 == 0: print 'Citations found:', citation_count
-            punctuation = ["[", "]", "{", "\n"]
-            for p in punctuation: line = line.replace(p, '')
-            attributes = line.split('|')
-            desired_attributes = ['journal', 'author', 'last', 'first', 'year', 'volume', 'issue', 'pages', 'pmid', 'doi']
-            acquired_attributes = parse_citation(attributes, desired_attributes)
-            if not duplicate_cite(acquired_attributes):
-                output_writer.write('\t\t<cite_journal>\n')
-                output_writer.write('\t\t\t<name>' + acquired_attributes[0] + '</name>\n')
-                output_writer.write('\t\t\t<year>' + acquired_attributes[4] + '</year>\n')
-		output_writer.write('\t\t\t<pmid>' + acquired_attributes[8] + '</pmid>\n')
-		output_writer.write('\t\t\t<doi>' + acquired_attributes[9] + '</doi>\n')
-                output_writer.write('\t\t</cite_journal>\n')
+            ms = re.findall('\{\{cite journal.*?\}\}', line)
+            #if len(ms) > 1: print ms
+            for m in ms:
+                citation_count += 1
+                if citation_count % 1000 == 0: print 'Citations found:', citation_count
+                punctuation = ["[", "]", "{", "\n"]
+                for p in punctuation: m = m.replace(p, '')
+                attributes = m.split('|')
+                desired_attributes = ['journal', 'author', 'last', 'first', 'year', 'volume', 'issue', 'pages', 'pmid', 'doi']
+                acquired_attributes = parse_citation(attributes, desired_attributes)
+                if not duplicate_cite(acquired_attributes):
+                    output_writer.write('\t\t<cite_journal>\n')
+                    output_writer.write('\t\t\t<name>' + acquired_attributes[0] + '</name>\n')
+                    output_writer.write('\t\t\t<year>' + acquired_attributes[4] + '</year>\n')
+		    output_writer.write('\t\t\t<pmid>' + acquired_attributes[8] + '</pmid>\n')
+		    output_writer.write('\t\t\t<doi>' + acquired_attributes[9] + '</doi>\n')
+                    output_writer.write('\t\t</cite_journal>\n')
         elif 'cite pmid' in line or 'cite doi' in line:
             punctuation = ["}", "{", "\n"]
             for p in punctuation: line = line.replace(p, '')
@@ -125,4 +143,4 @@ def duplicate_cite(citation, doi_or_pmid = False):
             return False
 
 
-clean_directory('unzipped/', 'cleaned/')
+clean_directory('splits_by_page/', 'cleaned_by_page/')
