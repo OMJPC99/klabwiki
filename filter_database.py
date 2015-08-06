@@ -1,6 +1,5 @@
 import MySQLdb
 import sys
-import ip_lookup
 
 # sys.argv[1] = <database_name>
 # sys.argv[2] = <output_file_name>
@@ -11,7 +10,10 @@ db = MySQLdb.connect(host='localhost',
                      db=sys.argv[1])
 
 cursor = db.cursor()
-cursor.execute('SELECT * FROM revisions WHERE journalName IS NOT NULL')
+cursor.execute('SELECT revisions.*, journals.* FROM revisions, journals WHERE journals.journalName IS NOT NULL AND journals.ID=revisions.ID')
+#cursor.execute('SELECT revisions.*, journals.* FROM revisions, journals INNER JOIN journals AS j ON j.ID=revisions.ID WHERE journals.journalName IS NOT NULL')
+#cursor.execute('SELECT *, GROUP_CONCAT(journals.journalName SEPARATOR ", ") FROM revisions JOIN journals AS jo ON jo.ID = revisions.ID WHERE jo.journalName IS NOT NULL')
+#cursor.execute('SELECT * FROM revisions INNER JOIN journals AS j ON j.ID = revisions.ID WHERE j.journalName IS NOT NULL')
 rows = cursor.fetchall()
 writer = open(sys.argv[2], 'w')
 for row in rows:
