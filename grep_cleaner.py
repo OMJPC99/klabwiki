@@ -5,26 +5,16 @@ import sys
 
 def clean_directory(input_directory, output_directory):
     print 'Cleaning directory:', input_directory
-    sub_dir_size = 10000
-    # output_directory will be the main directory, with sub directories created every sub_dir_size files
     if not os.path.isdir(output_directory): os.mkdir(output_directory)
     index = 0
-    cur_file_num = 0
-    sub_dir_num = 0
-    current_sub_dir_name = 'division_0/'
     last_page_id = ''
     print 'Building file list...(this may take a while)'
     file_list = os.listdir(input_directory)
     print 'Beginning iteration across files...'
     for file_name in sorted(file_list):
-        if cur_file_num == sub_dir_size:
-            sub_dir_num += 1
-            cur_file_num = 0
-            current_sub_dir_name = 'division_%d/' % sub_dir_num
-            os.mkdir(output_directory + 'division_%d' % sub_dir_num)
         # Move file into current directory for processing for the sake of easier file path operations
         os.system('mv %s%s ./' % (input_directory, file_name))
-        last_page_id = clean_file(file_name, output_directory + current_sub_dir_name +'clean_%s' % file_name)
+        last_page_id = clean_file(file_name, output_directory +'clean_%s' % file_name)
         index += 1
         cur_file_num += 1
 	os.system('mv %s %s' % (file_name, input_directory))
@@ -143,4 +133,4 @@ def duplicate_cite(citation, doi_or_pmid = False):
             return False
 
 
-clean_directory('splits_by_page/', 'cleaned_by_page/')
+clean_directory('unzipped/', 'cleaned/')
